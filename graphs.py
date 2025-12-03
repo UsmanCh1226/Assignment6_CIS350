@@ -102,17 +102,20 @@ class Graph:
 
     def print_adjacency_list(self):
         """Prints the initial graph representation."""
-        print("--- Initial Graph Adjacency List ---")
+        print("--- Initial Graph Adjacency List (18 Edges) ---")
         for u in range(self.V):
             u_name = self._get_vertex_name(u)
             neighbors = []
-            for edge in self.adj[u]:
+            # Sort neighbors for consistent output
+            sorted_adj = sorted(self.adj[u], key=lambda edge: (self._get_vertex_name(edge.to), edge.weight))
+            
+            for edge in sorted_adj:
                 v_name = self._get_vertex_name(edge.to)
                 neighbors.append(f"({v_name}, {edge.weight})")
             print(f"Vertex {u_name}: {', '.join(neighbors)}")
-        print("-" * 40)
+        print("-" * 45)
 
-    # --- DIJKSTRA'S ALGORITHM (Provided in Assignment Context) ---
+    # --- DIJKSTRA'S ALGORITHM (For Shortest Path) ---
     def dijkstra(self, src):
         """Finds the shortest paths from a source vertex."""
         src_name = self._get_vertex_name(src)
@@ -130,8 +133,6 @@ class Graph:
             u_dist, u = pq.pop()
             u_name = self._get_vertex_name(u)
 
-            # Important: Check if the popped distance is still the shortest known one
-            # This handles outdated entries in the priority queue
             if u_dist > dist[u]:
                 continue
             
@@ -147,26 +148,16 @@ class Graph:
                     pq.push(dist[v], v)
                     print(f"    Relax: {u_name} -> {v_name}. New dist[{v_name}] = {dist[v]}")
             
-            # Intermediate step output
-            current_dists = {}
-            for i in range(self.V):
-                 d = dist[i]
-                 current_dists[self._get_vertex_name(i)] = "INF" if d == float('inf') else d
-
-            # The original code only printed this step inside the loop, so we'll keep it simple
-            # print("Current shortest distances:", current_dists)
-
-
         print("\nFinal shortest distances from source", src_name, ":")
         final_dists = {}
         for i in range(self.V):
             d = dist[i]
             final_dists[self._get_vertex_name(i)] = 'INF' if d == float('inf') else d
         print(final_dists)
-        print("-" * 40)
+        print("-" * 45)
 
 
-    # --- KRUSKAL'S ALGORITHM ---
+    # --- KRUSKAL'S ALGORITHM (MST) ---
     def kruskal_mst(self):
         """Finds the Minimum Spanning Tree using Kruskal's Algorithm (Union-Find)."""
         print("\n--- Executing Kruskal's MST Algorithm ---")
@@ -209,13 +200,14 @@ class Graph:
         print(f"Total Cost: {mst_cost}")
         print("Edges in MST:")
         for edge in mst:
-            u_name = self._get_vertex_name(edge.from_node)
-            v_name = self._get_vertex_name(edge.to)
-            print(f"  {u_name} --- {edge.weight} --- {v_name}")
-        print("-" * 40)
+            # Sort edge nodes for consistent output format
+            n1 = self._get_vertex_name(min(edge.from_node, edge.to))
+            n2 = self._get_vertex_name(max(edge.from_node, edge.to))
+            print(f"  {n1} --- {edge.weight} --- {n2}")
+        print("-" * 45)
 
 
-    # --- PRIM-JARNIK'S ALGORITHM ---
+    # --- PRIM-JARNIK'S ALGORITHM (MST) ---
     def prim_jarnik_mst(self, start_node=0):
         """Finds the Minimum Spanning Tree using Prim-Jarnik's Algorithm (Min-Heap)."""
         start_name = self._get_vertex_name(start_node)
@@ -236,10 +228,10 @@ class Graph:
         pq.push(0, start_node)
         
         mst_cost = 0
-        edges_in_mst = 0
         
         step = 0
-        while not pq.empty() and edges_in_mst < self.V:
+        # The loop runs V times, adding one vertex to MST in each iteration
+        while not pq.empty():
             step += 1
             weight_u, u = pq.pop()
             u_name = self._get_vertex_name(u)
@@ -251,14 +243,13 @@ class Graph:
             # Add u to MST
             in_mst[u] = True
             
-            # Update cost and edge count (if not the starting node)
+            # Update cost and edge information (if not the starting node)
             if parent[u] != -1:
                 mst_cost += weight_u
-                edges_in_mst += 1
                 parent_name = self._get_vertex_name(parent[u])
                 print(f"Step {step}: Adding Edge ({parent_name}-{u_name}, {weight_u}). MST Cost: {mst_cost}")
             else:
-                print(f"Step {step}: Initializing with Start Node {u_name}.")
+                print(f"Step {step}: Initializing with Start Node {u_name} (Cost 0).")
 
             # Check all neighbors v of u
             for edge in self.adj[u]:
@@ -270,20 +261,29 @@ class Graph:
                     # Update key and parent
                     key[v] = weight
                     parent[v] = u
-                    # Add to Priority Queue
+                    # Add to Priority Queue (or update key in the ideal structure)
                     pq.push(key[v], v)
                     print(f"    Relax: {u_name} -> {v_name}. New Key[{v_name}] = {weight}")
 
         print("\n--- Final Prim-Jarnik's MST ---")
         print(f"Total Cost: {mst_cost}")
         print("Edges in MST:")
-        # Skip the starting node (u=0) as it has no parent
-        for u in range(1, self.V):
-            u_name = self._get_vertex_name(u)
-            p_name = self._get_vertex_name(parent[u])
-            w = key[u]
-            print(f"  {p_name} --- {w} --- {u_name}")
-        print("-" * 40)
+        
+        mst_edges = []
+        for u in range(self.V):
+            if parent[u] != -1:
+                p = parent[u]
+                w = key[u]
+                # Sort edge nodes for consistent output format
+                n1 = self._get_vertex_name(min(u, p))
+                n2 = self._get_vertex_name(max(u, p))
+                mst_edges.append((w, n1, n2))
+
+        # Sort by weight for clear display
+        mst_edges.sort()
+        for w, n1, n2 in mst_edges:
+            print(f"  {n1} --- {w} --- {n2}")
+        print("-" * 45)
 
 
 # --- MAIN EXECUTION ---
@@ -299,31 +299,39 @@ if __name__ == "__main__":
     # Initialize graph
     g = Graph(V, vertex_map)
 
-    # Add edges from the assignment image (A=0, B=1, ..., I=8)
     edges_list = [
         # (U, V, WEIGHT)
-        (0, 1, 144), (0, 2, 184), (0, 3, 187), (0, 6, 849), (0, 8, 1258),
-        (1, 3, 867),
-        (2, 6, 621), (2, 7, 1391), (2, 8, 1090),
-        (3, 6, 740),
-        (4, 5, 337), (4, 7, 1235), (4, 8, 2342),
-        (5, 6, 1846), (5, 7, 1464), (5, 8, 2704),
-        (6, 7, 802),
-        (7, 8, 1121)
+        (0, 1, 144),  # A-B
+        (0, 3, 187),  # A-D
+        (0, 6, 740),  # A-G
+        (0, 7, 1391), # A-H
+        (0, 2, 184),  # A-C
+        (1, 6, 849),  # B-G
+        (2, 8, 946),  # C-I
+        (3, 6, 867),  # D-G
+        (3, 5, 2704), # D-F
+        (3, 8, 1258), # D-I
+        (4, 5, 337),  # E-F
+        (4, 7, 1325), # E-H 
+        (4, 8, 2342), # E-I
+        (5, 6, 1846), # F-G
+        (5, 7, 1464), # F-H
+        (6, 2, 621),  # G-C
+        (7, 8, 1121), # H-I
+        (7, 6, 802)   # H-G
     ]
 
     for u, v, weight in edges_list:
         g.add_edge(u, v, weight)
 
-    # 1. Print Initial Graph Representation (Requirement 4)
+    # 1. Print Initial Graph Representation
     g.print_adjacency_list()
 
-    # 2. Execute and show steps for Kruskal's MST (Requirement 2 & 4)
+    # 2. Execute and show steps for Kruskal's MST
     g.kruskal_mst()
 
-    # 3. Execute and show steps for Prim-Jarnik's MST (Requirement 3 & 4)
-    # Start node A (index 0) for consistency
+    # 3. Execute and show steps for Prim-Jarnik's MST
     g.prim_jarnik_mst(start_node=0)
     
-    # Optional: Run Dijkstra's for completeness (Source A)
-    # g.dijkstra(src=0)
+    # 4. Execute Dijkstra's (Source A)
+    g.dijkstra(src=0)
